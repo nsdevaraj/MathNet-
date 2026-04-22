@@ -1,0 +1,12 @@
+{
+  "chunks": [
+    "mathnet_0.json"
+  ],
+  "counts": {
+    "Algebra": 7,
+    "Geometry": 76,
+    "Discrete Mathematics": 17,
+    "Number Theory": 0
+  },
+  "total": 100
+}

@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "JEE Flashcards",
+  "description": "High-performance flashcard app for JEE exam preparation with LaTeX support, progressive data loading, and PDF export.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
