@@ -301,7 +301,7 @@ const App: React.FC = () => {
                ))}
             </div>
 
-            {topics.length > 1 && (
+            {selectedSubject === 'Mathematics (Olympiad)' && topics.length > 1 && (
               <div className="flex flex-wrap items-center gap-2">
                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Topic</span>
                  {topics.map(t => (
@@ -321,7 +321,7 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {subtopics.length > 1 && (
+            {selectedSubject === 'Mathematics (Olympiad)' && subtopics.length > 1 && (
               <div className="flex flex-wrap items-center gap-2">
                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Subtopic</span>
                  {subtopics.map(st => (
