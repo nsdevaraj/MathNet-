@@ -44,7 +44,9 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
         options,
         answer: String(answer),
         solution: item.solution || "",
-        subject: String(subject)
+        subject: String(subject),
+        topic: item.topic || "Unknown",
+        subtopic: item.subtopic || "Unknown",
     };
   }).filter((q): q is QuizQuestion => q !== null && !!q.question); 
 };
