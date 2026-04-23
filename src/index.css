@@ -1,2 +1,19 @@
 @import url('https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css');
 @import "tailwindcss";
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px auto;
+  display: block;
+  background-color: white; /* In case the images are transparent and dark-colored */
+}
+
+.markdown-content {
+  color: #e2e8f0; /* slate-200 */
+}
+
+.markdown-content p {
+  margin-bottom: 1em;
+}

@@ -52,6 +52,10 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
     
     let rawHtml = marked.parse(protectedText) as string;
 
+    // Add referrerPolicy to all images to ensure they load
+    // Catch <img whether it has a space immediately after or not
+    rawHtml = rawHtml.replace(/<img\b/gi, '<img referrerpolicy="no-referrer" ');
+
     // 6. Restore and Render LaTeX
     latexMap.forEach((data, id) => {
       try {
