@@ -2,6 +2,7 @@ import { parquetRead } from 'hyparquet';
 import fs from 'fs';
 import https from 'https';
 import path from 'path';
+import { categorizeQuestion } from './categorizer.js';
 
 const downloadFile = async (url, dest) => {
   return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ async function main() {
   let totalParsed = 0;
   let chunkIndex = 0;
   const chunkFiles = [];
-  const counts = {};
+  const counts = { subjects: {}, topics: {} };
 
   if (!fs.existsSync('./public')) fs.mkdirSync('./public');
   if (!fs.existsSync('./tmp_parquets')) fs.mkdirSync('./tmp_parquets');
@@ -49,11 +50,22 @@ async function main() {
     currentChunk = [];
   };
 
-  const addQuestion = (q) => {
+  const addQuestion = (q, rawChapterString) => {
     if (!q.question || q.question.length < 5) return;
     totalParsed++;
-    if (!counts[q.subject]) counts[q.subject] = 0;
-    counts[q.subject]++;
+    
+    // Categorize
+    const category = categorizeQuestion(q.question, q.subject, rawChapterString || '');
+    q.topic = category.topic;
+    q.subtopic = category.subtopic;
+
+    if (!counts.subjects[q.subject]) counts.subjects[q.subject] = 0;
+    counts.subjects[q.subject]++;
+    
+    if (!counts.topics[q.topic]) counts.topics[q.topic] = {};
+    if (!counts.topics[q.topic][q.subtopic]) counts.topics[q.topic][q.subtopic] = 0;
+    counts.topics[q.topic][q.subtopic]++;
+
     currentChunk.push({
       id: totalParsed,
       ...q
@@ -91,7 +103,7 @@ async function main() {
                           options: opts,
                           answer: row.solution || "Refer to Explanation",
                           solution: solution
-                      });
+                      }, row.chapter);
                   }
                   resolve();
               }

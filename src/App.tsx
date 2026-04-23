@@ -16,6 +16,8 @@ const App: React.FC = () => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
+  const [selectedTopic, setSelectedTopic] = useState('All');
+  const [selectedSubtopic, setSelectedSubtopic] = useState('All');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   
   // Navigation Input State
@@ -45,12 +47,28 @@ const App: React.FC = () => {
     );
   }, []);
 
-  // Extract Subjects
+  // Extract Subjects, Topics, Subtopics
   const subjects = useMemo(() => {
     const uniqueSubjects = new Set(questions.map(q => q.subject).filter(Boolean));
     const sorted = Array.from(uniqueSubjects).sort();
     return ['All', ...sorted];
   }, [questions]);
+
+  const topics = useMemo(() => {
+    if (selectedSubject === 'All') return ['All'];
+    const uniqueTopics = new Set(
+      questions.filter(q => q.subject === selectedSubject && q.topic).map(q => q.topic)
+    );
+    return ['All', ...Array.from(uniqueTopics).sort()];
+  }, [questions, selectedSubject]);
+
+  const subtopics = useMemo(() => {
+    if (selectedTopic === 'All') return ['All'];
+    const uniqueSubtopics = new Set(
+      questions.filter(q => q.topic === selectedTopic && q.subtopic).map(q => q.subtopic)
+    );
+    return ['All', ...Array.from(uniqueSubtopics).sort()];
+  }, [questions, selectedTopic]);
 
   // Filter Logic
   const filteredQuestions = useMemo(() => {
@@ -58,6 +76,14 @@ const App: React.FC = () => {
 
     if (selectedSubject !== 'All') {
       result = result.filter(q => q.subject === selectedSubject);
+    }
+    
+    if (selectedTopic !== 'All') {
+      result = result.filter(q => q.topic === selectedTopic);
+    }
+    
+    if (selectedSubtopic !== 'All') {
+      result = result.filter(q => q.subtopic === selectedSubtopic);
     }
 
     if (searchQuery.trim()) {
@@ -69,13 +95,13 @@ const App: React.FC = () => {
     }
 
     return result;
-  }, [questions, searchQuery, selectedSubject]);
+  }, [questions, searchQuery, selectedSubject, selectedTopic, selectedSubtopic]);
 
   // Reset index when filters change
   useEffect(() => {
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [selectedSubject, searchQuery]);
+  }, [selectedSubject, selectedTopic, selectedSubtopic, searchQuery]);
 
   // Sync jump input with current index
   useEffect(() => {
@@ -207,7 +233,10 @@ const App: React.FC = () => {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs md:text-sm text-slate-500">
-                {filteredQuestions.length} questions • {selectedSubject}
+                {filteredQuestions.length} questions
+                {selectedSubject !== 'All' ? ` • ${selectedSubject}` : ''}
+                {selectedTopic !== 'All' ? ` • ${selectedTopic}` : ''}
+                {selectedSubtopic !== 'All' ? ` • ${selectedSubtopic}` : ''}
               </p>
               {downloadProgress > -1 && downloadProgress < 100 && (
                  <span className="text-[10px] font-mono text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -248,22 +277,65 @@ const App: React.FC = () => {
         </div>
 
         {subjects.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient">
-             <Filter className="w-4 h-4 text-slate-500 flex-shrink-0 mr-2" />
-             {subjects.map(sub => (
-               <button
-                 key={sub}
-                 onClick={() => setSelectedSubject(sub)}
-                 className={`
-                   px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200
-                   ${selectedSubject === sub 
-                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
-                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
-                 `}
-               >
-                 {sub}
-               </button>
-             ))}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient">
+               <Filter className="w-4 h-4 text-slate-500 flex-shrink-0 mr-2" />
+               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Subject:</span>
+               {subjects.map(sub => (
+                 <button
+                   key={sub}
+                   onClick={() => { setSelectedSubject(sub); setSelectedTopic('All'); setSelectedSubtopic('All'); }}
+                   className={`
+                     px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200
+                     ${selectedSubject === sub 
+                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
+                   `}
+                 >
+                   {sub}
+                 </button>
+               ))}
+            </div>
+
+            {selectedSubject !== 'All' && topics.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient mt-1">
+                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold mr-2 ml-6">Topic:</span>
+                 {topics.map(t => (
+                   <button
+                     key={t}
+                     onClick={() => { setSelectedTopic(t); setSelectedSubtopic('All'); }}
+                     className={`
+                       px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200
+                       ${selectedTopic === t 
+                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25' 
+                         : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
+                     `}
+                   >
+                     {t}
+                   </button>
+                 ))}
+              </div>
+            )}
+
+            {selectedTopic !== 'All' && subtopics.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient mt-1">
+                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold mr-2 ml-6">Sub:</span>
+                 {subtopics.map(st => (
+                   <button
+                     key={st}
+                     onClick={() => setSelectedSubtopic(st)}
+                     className={`
+                       px-3 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 lowercase tracking-wide
+                       ${selectedSubtopic === st 
+                         ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25' 
+                         : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
+                     `}
+                   >
+                     {st}
+                   </button>
+                 ))}
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -286,7 +358,7 @@ const App: React.FC = () => {
                   Clear Search
                 </button>
                 <button 
-                  onClick={() => setSelectedSubject('All')}
+                  onClick={() => { setSelectedSubject('All'); setSelectedTopic('All'); setSelectedSubtopic('All'); }}
                   className="px-4 py-2 bg-blue-600 rounded-lg text-sm hover:bg-blue-500 transition"
                 >
                   Reset Filters
@@ -411,7 +483,7 @@ const App: React.FC = () => {
                     {subjects.map(sub => (
                        <button
                          key={sub}
-                         onClick={() => { setSelectedSubject(sub); setSidebarOpen(false); }}
+                         onClick={() => { setSelectedSubject(sub); setSelectedTopic('All'); setSelectedSubtopic('All'); setSidebarOpen(false); }}
                          className={`px-3 py-2 rounded-lg text-sm ${selectedSubject === sub ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}
                        >
                          {sub}
