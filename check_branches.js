@@ -1,6 +1,6 @@
-async function checkBranches() {
-  const res = await fetch('https://huggingface.co/api/datasets/ShadenA/MathNet');
+async function checkRepoBranches() {
+  const res = await fetch('https://api.github.com/repos/nsdevaraj/MathNet-/branches');
   const data = await res.json();
-  console.log("Branches:", JSON.stringify(data.siblings, null, 2));
+  console.log(JSON.stringify(data, null, 2));
 }
-checkBranches().catch(console.error);
+checkRepoBranches().catch(console.error);

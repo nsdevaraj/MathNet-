@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Generated Data
+public/mathnet*.json
+tmp_parquets/
