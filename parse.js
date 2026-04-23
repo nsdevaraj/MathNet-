@@ -4,7 +4,7 @@ import https from 'https';
 import path from 'path';
 
 const getTree = async (treePath) => {
-  const res = await fetch('https://huggingface.co/api/datasets/ShadenA/MathNet/tree/refs%2Fconvert%2Fparquet/' + treePath);
+  const res = await fetch('https://huggingface.co/api/datasets/ShadenA/MathNet/tree/main/' + treePath);
   return await res.json();
 };
 
@@ -27,32 +27,44 @@ const downloadFile = async (url, dest) => {
 };
 
 async function main() {
-  console.log("Discovering parquet files...");
-  const root = await getTree('');
+  console.log("Discovering parquet files on main branch...");
+  const dataRoot = await getTree('data');
+  console.log("Data directories found:", dataRoot.length);
   const parquetUrls = [];
   
-  for (const item of root) {
+  for (const item of dataRoot) {
     if (item.type === 'directory') {
-      if (item.path === 'all') continue; 
+      // We skip 'all' to avoid duplicates, or we can just process 'all' and skip others.
+      // Let's process everything EXCEPT 'all' first for granularity.
+      if (item.path === 'data/all') continue; 
 
-      const sub = await getTree(item.path + '/train');
-      for (const f of sub) {
-        if (f.path.endsWith('.parquet')) {
-          parquetUrls.push({
-            name: f.path.split('/').pop() + '_' + item.path + '.parquet',
-            url: `https://huggingface.co/datasets/ShadenA/MathNet/resolve/refs%2Fconvert%2Fparquet/${f.path}?download=true`
-          });
-        }
+      try {
+          const sub = await getTree(item.path);
+          if (Array.isArray(sub)) {
+              for (const f of sub) {
+                if (f.path.endsWith('.parquet')) {
+                  parquetUrls.push({
+                    name: f.path.split('/').pop(),
+                    folder: item.path,
+                    url: `https://huggingface.co/datasets/ShadenA/MathNet/resolve/main/${f.path}?download=true`
+                  });
+                }
+              }
+          }
+      } catch(e) {
+          console.error(`Error tree-listing ${item.path}:`, e);
       }
     }
   }
 
+  console.log(`Found ${parquetUrls.length} total parquet files.`);
   if (!fs.existsSync('./tmp_parquets')) fs.mkdirSync('./tmp_parquets');
+  if (!fs.existsSync('./public')) fs.mkdirSync('./public');
 
   const counts = { 'Algebra': 0, 'Geometry': 0, 'Discrete Mathematics': 0, 'Number Theory': 0 };
   
   // CHUNKING CONFIGURATION
-  const CHUNK_SIZE = 5000;
+  const CHUNK_SIZE = 1000;
   let currentChunk = [];
   let totalParsed = 0;
   let chunkIndex = 0;
@@ -63,81 +75,88 @@ async function main() {
     const filename = `mathnet_${chunkIndex}.json`;
     fs.writeFileSync(path.join('./public', filename), JSON.stringify(currentChunk, null, 2));
     chunkFiles.push(filename);
-    console.log(`=> Wrote ${filename} with ${currentChunk.length} questions.`);
+    console.log(`=> Wrote ${filename} with ${currentChunk.length} questions. Total: ${totalParsed}`);
     chunkIndex++;
     currentChunk = [];
   };
 
   for (let i = 0; i < parquetUrls.length; i++) {
     const p = parquetUrls[i];
-    const dest = path.join('./tmp_parquets', p.name);
-    console.log(`Downloading ${i+1}/${parquetUrls.length}: ${p.name}`);
+    const localName = p.folder.replace(/\//g, '_') + '_' + p.name;
+    const dest = path.join('./tmp_parquets', localName);
+    console.log(`Downloading ${i+1}/${parquetUrls.length}: ${localName}`);
     try {
       await downloadFile(p.url, dest);
       
       const fileBuffer = fs.readFileSync(dest);
       
-      await parquetRead({
-        file: fileBuffer.buffer,
-        rowFormat: 'object',
-        parsers: {
-            stringFromBytes: (bytes) => {
-                if (!bytes) return null;
-                // Basic check for image headers
-                if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "{IMAGE_PLACEHOLDER}";
-                try {
-                  return new TextDecoder().decode(bytes);
-                } catch(e) {
-                  return "";
+      await new Promise((resolve, reject) => {
+          parquetRead({
+            file: fileBuffer.buffer,
+            rowFormat: 'object',
+            parsers: {
+                stringFromBytes: (bytes) => {
+                    if (!bytes) return null;
+                    if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "{IMAGE_PLACEHOLDER}";
+                    try {
+                      return new TextDecoder().decode(bytes);
+                    } catch(e) {
+                      return "";
+                    }
                 }
+            },
+            onComplete: (data) => {
+              try {
+                  if (data.length > 0) {
+                      console.log(`- Loaded ${data.length} rows. Columns: ${Object.keys(data[0]).join(', ')}`);
+                  }
+                  for (let j = 0; j < data.length; j++) {
+                     let row = data[j];
+                     const rawTopics = row.topics || row.topics_flat || [];
+                     const topics = Array.isArray(rawTopics) ? rawTopics : [rawTopics];
+                     let problem = Array.isArray(row.problem_markdown) ? row.problem_markdown.join('\n') : String(row.problem_markdown || row.original_problem_markdown || '');
+                     let answerList = row.final_answer || [];
+                     let answer = Array.isArray(answerList) ? answerList.join('\n') : String(answerList);
+                     if (!answer || answer.length < 2 || answer === "undefined" || answer === "null") answer = "Detailed Solution Provided";
+                     let solution = Array.isArray(row.solutions_markdown) ? row.solutions_markdown.join('\n') : String(row.solutions_markdown || '');
+                     
+                     if (!problem || problem.length < 10) continue;
+        
+                     let subject = "Other";
+                     const ts = JSON.stringify(topics).toLowerCase();
+                     if (ts.includes('algebra')) subject = "Algebra";
+                     else if (ts.includes('geometry')) subject = "Geometry";
+                     else if (ts.includes('discrete')) subject = "Discrete Mathematics";
+                     else if (ts.includes('number theory')) subject = "Number Theory";
+                     if (subject === "Other") subject = "Algebra";
+        
+                     if (!counts[subject]) counts[subject] = 0;
+                     counts[subject]++;
+                     totalParsed++;
+        
+                     currentChunk.push({
+                         id: totalParsed,
+                         subject: subject,
+                         question: problem,
+                         options: [],
+                         answer: answer,
+                         solution: solution
+                     });
+        
+                     if (currentChunk.length >= CHUNK_SIZE) flushChunk();
+                  }
+                  resolve();
+              } catch(e) {
+                  reject(e);
+              }
             }
-        },
-        onComplete: (data) => {
-          for (let j = 0; j < data.length; j++) {
-             let row = data[j];
-             const rawTopics = row.topics || row.topics_flat || [];
-             const topics = Array.isArray(rawTopics) ? rawTopics : [rawTopics];
-             let problem = Array.isArray(row.problem_markdown) ? row.problem_markdown.join('\n') : String(row.problem_markdown || row.original_problem_markdown || '');
-             let answerList = row.final_answer || [];
-             let answer = Array.isArray(answerList) ? answerList.join('\n') : String(answerList);
-             if (!answer || answer.length < 2 || answer === "undefined" || answer === "null") answer = "Detailed Solution Provided";
-             let solution = Array.isArray(row.solutions_markdown) ? row.solutions_markdown.join('\n') : String(row.solutions_markdown || '');
-             
-             if (!problem || problem.length < 10) continue;
-
-             let subject = "Other";
-             const ts = JSON.stringify(topics).toLowerCase();
-             if (ts.includes('algebra')) subject = "Algebra";
-             else if (ts.includes('geometry')) subject = "Geometry";
-             else if (ts.includes('discrete')) subject = "Discrete Mathematics";
-             else if (ts.includes('number theory')) subject = "Number Theory";
-             if (subject === "Other") subject = "Algebra";
-
-             if (!counts[subject]) counts[subject] = 0;
-             counts[subject]++;
-             totalParsed++;
-
-             currentChunk.push({
-                 id: totalParsed,
-                 subject: subject,
-                 question: problem,
-                 options: [],
-                 answer: answer,
-                 solution: solution
-             });
-
-             if (currentChunk.length >= CHUNK_SIZE) flushChunk();
-          }
-        }
+          });
       });
     } catch (err) {
       console.error(`Error processing ${p.name}:`, err);
     } finally {
       if (fs.existsSync(dest)) fs.unlinkSync(dest);
     }
-    
-    // For now, let's limit it to first few chunks for the preview to be fast
-    if (chunkIndex >= 2) break; 
   }
 
   flushChunk(); // Final flush
