@@ -155,15 +155,34 @@ async function main() {
                               rowFormat: 'object',
                               onComplete: (data) => {
                                   for (const row of data) {
-                                      const problem = Array.isArray(row.problem_markdown) ? row.problem_markdown.join('\n') : (row.problem_markdown || "");
-                                      const solution = Array.isArray(row.solutions_markdown) ? row.solutions_markdown.join('\n') : (row.solutions_markdown || "");
+                                      let problem = Array.isArray(row.problem_markdown) ? row.problem_markdown.join('\n') : (row.problem_markdown || "");
+                                      let solution = Array.isArray(row.solutions_markdown) ? row.solutions_markdown.join('\n') : (row.solutions_markdown || "");
+                                      
+                                      // Extract and save images if present
+                                      if (row.has_images && Array.isArray(row.images)) {
+                                          if (!fs.existsSync('./public/images')) {
+                                              fs.mkdirSync('./public/images', { recursive: true });
+                                          }
+                                          for (const img of row.images) {
+                                              if (img.bytes && img.path) {
+                                                  const imgName = img.path.split('/').pop();
+                                                  // Write the bytes to a file
+                                                  // some parquet readers return Uint8Array or Buffer, we can write it directly
+                                                  fs.writeFileSync(`./public/images/${imgName}`, img.bytes, 'binary');
+                                              }
+                                          }
+                                          // Fix markdown relative paths to absolute root path to avoid routing issues
+                                          problem = problem.replace(/!\[(.*?)\]\(images\//g, '![$1](/images/');
+                                          solution = solution.replace(/!\[(.*?)\]\(images\//g, '![$1](/images/');
+                                      }
+
                                       addQuestion({
                                           subject: 'Mathematics (Multi-modal)',
                                           question: String(problem),
                                           options: [],
                                           answer: Array.isArray(row.final_answer) ? row.final_answer.join(', ') : String(row.final_answer || "Detailed solution"),
                                           solution: String(solution)
-                                      });
+                                      }, "Miscellaneous");
                                   }
                                   resolve();
                               }
