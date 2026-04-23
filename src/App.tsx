@@ -55,20 +55,25 @@ const App: React.FC = () => {
   }, [questions]);
 
   const topics = useMemo(() => {
-    if (selectedSubject === 'All') return ['All'];
-    const uniqueTopics = new Set(
-      questions.filter(q => q.subject === selectedSubject && q.topic).map(q => q.topic)
-    );
+    let relevantQuestions = questions;
+    if (selectedSubject !== 'All') {
+      relevantQuestions = relevantQuestions.filter(q => q.subject === selectedSubject);
+    }
+    const uniqueTopics = new Set(relevantQuestions.map(q => q.topic).filter(Boolean));
     return ['All', ...Array.from(uniqueTopics).sort()];
   }, [questions, selectedSubject]);
 
   const subtopics = useMemo(() => {
-    if (selectedTopic === 'All') return ['All'];
-    const uniqueSubtopics = new Set(
-      questions.filter(q => q.topic === selectedTopic && q.subtopic).map(q => q.subtopic)
-    );
+    let relevantQuestions = questions;
+    if (selectedSubject !== 'All') {
+      relevantQuestions = relevantQuestions.filter(q => q.subject === selectedSubject);
+    }
+    if (selectedTopic !== 'All') {
+      relevantQuestions = relevantQuestions.filter(q => q.topic === selectedTopic);
+    }
+    const uniqueSubtopics = new Set(relevantQuestions.map(q => q.subtopic).filter(Boolean));
     return ['All', ...Array.from(uniqueSubtopics).sort()];
-  }, [questions, selectedTopic]);
+  }, [questions, selectedSubject, selectedTopic]);
 
   // Filter Logic
   const filteredQuestions = useMemo(() => {
@@ -277,16 +282,15 @@ const App: React.FC = () => {
         </div>
 
         {subjects.length > 1 && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient">
-               <Filter className="w-4 h-4 text-slate-500 flex-shrink-0 mr-2" />
-               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Subject:</span>
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex flex-wrap items-center gap-2">
+               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20 flex items-center"><Filter className="w-3 h-3 mr-1" /> Subject</span>
                {subjects.map(sub => (
                  <button
                    key={sub}
                    onClick={() => { setSelectedSubject(sub); setSelectedTopic('All'); setSelectedSubtopic('All'); }}
                    className={`
-                     px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200
+                     px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-200
                      ${selectedSubject === sub 
                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
@@ -297,15 +301,15 @@ const App: React.FC = () => {
                ))}
             </div>
 
-            {selectedSubject !== 'All' && topics.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient mt-1">
-                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold mr-2 ml-6">Topic:</span>
+            {topics.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2">
+                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Topic</span>
                  {topics.map(t => (
                    <button
                      key={t}
                      onClick={() => { setSelectedTopic(t); setSelectedSubtopic('All'); }}
                      className={`
-                       px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200
+                       px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
                        ${selectedTopic === t 
                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25' 
                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
@@ -317,15 +321,15 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {selectedTopic !== 'All' && subtopics.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient mt-1">
-                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold mr-2 ml-6">Sub:</span>
+            {subtopics.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2">
+                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Subtopic</span>
                  {subtopics.map(st => (
                    <button
                      key={st}
                      onClick={() => setSelectedSubtopic(st)}
                      className={`
-                       px-3 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 lowercase tracking-wide
+                       px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 tracking-wide
                        ${selectedSubtopic === st 
                          ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25' 
                          : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
