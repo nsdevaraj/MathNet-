@@ -8,9 +8,15 @@
     "build": "npx tsx parse.js && npx tsx legacy_support.js && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "cap:sync": "vite build && cap sync ios",
+    "ios:open": "cap open ios",
+    "ios:run": "vite build && cap sync ios && cap run ios"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",

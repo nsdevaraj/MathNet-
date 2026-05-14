@@ -234,7 +234,7 @@ const App: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-              JEE Flashcards
+               
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs md:text-sm text-slate-500">
