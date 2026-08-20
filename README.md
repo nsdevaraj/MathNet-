@@ -28,6 +28,17 @@ npm run corpus:verify
 
 Output is written to the ignored `artifacts/corpus/` directory. Publish `manifest.json` and `mathnet.sqlite3` together under the HTTPS directory configured by `VITE_CORPUS_BASE_URL`.
 
+To publish the default public Hugging Face dataset, authenticate locally and run:
+
+```sh
+python3 -m huggingface_hub.commands.huggingface_cli login
+npm run corpus:publish:hf
+cp .env.example .env.local
+npm run corpus:check-remote
+```
+
+Enter the Hugging Face token only in the terminal prompt. Native sync commands run the same remote check and stop before building if the endpoint is missing or invalid.
+
 Regenerating the source JSON corpus is a separate network-heavy operation:
 
 ```sh
