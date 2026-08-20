@@ -2,7 +2,7 @@
 
 ## Status
 
-The mobile redesign is in progress. The native shell, deterministic SQLite snapshot, installer state machine, native query repository, platform split, and iOS build are implemented. A hosted snapshot and downloadable offline image artifacts are still required before native release.
+The mobile redesign is in progress. The native shell, deterministic SQLite snapshot, installer state machine, native query repository, platform split, iOS build, and public corpus hosting are implemented. Downloadable offline image artifacts are still required before native release.
 
 ## Baseline
 
@@ -34,6 +34,8 @@ Native and browser routes split at startup:
 
 The current full snapshot contains 71,911 rows and is 214,937,600 bytes uncompressed. Legacy `Mathematics (Multi-modal)` and `General Science` records are normalized under `Mathematics (Olympiad)` as the `JEE` and `General` topics respectively. Their former broad topics remain available as subtopics. Chemistry and Physics are excluded from both browser loading and generated snapshots (6,894 source records). The corpus version includes the classification version so installed apps do not mistake reclassified data for an unchanged snapshot.
 
+The active public corpus is hosted at `https://huggingface.co/datasets/devarajns/olympiadmath-corpus/resolve/main/`. Native sync commands verify the remote manifest, database availability, and byte size before embedding that endpoint in the shell.
+
 After the implementation, both synced native web payloads are about 2.5 MB. The compiled iOS simulator application is about 29 MB and builds successfully with SQLite, Filesystem, and File Transfer plugins.
 
 ## Modules
@@ -59,17 +61,16 @@ After the implementation, both synced native web payloads are about 2.5 MB. The 
 - iOS includes the Filesystem timestamp required-reason privacy manifest.
 - Android stores corpus files privately and excludes application data from cloud backup/device transfer.
 - `@capacitor-community/sqlite` links SQLCipher even for unencrypted databases. Complete Apple encryption/export-compliance review before distribution.
-- Dataset and image licenses are not yet recorded in the generated manifest. Publication is blocked until redistribution rights and attribution are verified for every source.
+- Dataset and image licenses are not yet recorded in the generated manifest. Store release remains blocked until redistribution rights and attribution are verified for every source.
 
 ## Release Blockers
 
-1. Publish `artifacts/corpus/manifest.json` and `mathnet.sqlite3` to the configured HTTPS directory. The currently configured `https://math-net.vercel.app/manifest.json` returns 404.
-2. Build content-addressed image artifacts, rewrite every Markdown/raw HTML/`srcset` reference, and extend the manifest and installer. Native corpus images are not yet offline.
-3. Add free-space preflight. The installer currently reports storage errors but cannot query available disk before download.
-4. Add incremental question and asset deltas. The current installer atomically replaces the full database.
-5. Benchmark persistent SQLite WASM/OPFS and move the browser route off the JSON loader.
-6. Install JDK 21 and Android SDK locally, then run `cd android && ./gradlew assembleDebug`. Android project generation and Capacitor sync pass, but this machine currently has no Java runtime or Android SDK.
-7. Exercise first install, force-quit/resume, airplane mode, and update rollback on physical low-memory iOS and Android devices.
+1. Build content-addressed image artifacts, rewrite every Markdown/raw HTML/`srcset` reference, and extend the manifest and installer. Native corpus images are not yet offline.
+2. Add free-space preflight. The installer currently reports storage errors but cannot query available disk before download.
+3. Add incremental question and asset deltas. The current installer atomically replaces the full database.
+4. Benchmark persistent SQLite WASM/OPFS and move the browser route off the JSON loader.
+5. Install JDK 21 and Android SDK locally, then run `cd android && ./gradlew assembleDebug`. Android project generation and Capacitor sync pass, but this machine currently has no Java runtime or Android SDK.
+6. Exercise first install, force-quit/resume, airplane mode, and update rollback on physical low-memory iOS and Android devices.
 
 ## Acceptance Gates
 
