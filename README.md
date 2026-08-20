@@ -1,20 +1,68 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# OlympiadMath
 
-# Run and deploy your AI Studio app
+OlympiadMath is a React and Capacitor trainer for a large mathematics and science question corpus. The browser development build can still read the generated JSON chunks in `public/`. Native builds package only the application shell and install a verified SQLite/FTS snapshot after first launch.
 
-This contains everything you need to run your app locally.
+## Requirements
 
-View your app in AI Studio: https://ai.studio/apps/a0b12b99-d30c-45af-b5cc-1c82151f2d1b
+- Node.js 24 or newer to build corpus snapshots with `node:sqlite`
+- Xcode 26 or newer for iOS 15+
+- Android Studio with JDK 21 and an Android SDK for Android API 24+
 
-## Run Locally
+## Development
 
-**Prerequisites:**  Node.js
+```sh
+npm install
+npm run dev
+```
 
+The development server runs at <http://localhost:3000/> and serves the local JSON corpus from `public/`.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Corpus Snapshot
+
+Generate and verify the SQLite/FTS artifact from the existing JSON chunks without downloading upstream datasets:
+
+```sh
+npm run corpus:snapshot
+npm run corpus:verify
+```
+
+Output is written to the ignored `artifacts/corpus/` directory. Publish `manifest.json` and `mathnet.sqlite3` together under the HTTPS directory configured by `VITE_CORPUS_BASE_URL`.
+
+Regenerating the source JSON corpus is a separate network-heavy operation:
+
+```sh
+npm run corpus:build
+```
+
+## Native Builds
+
+Create `.env.local` with the deployed artifact directory:
+
+```dotenv
+VITE_CORPUS_BASE_URL="https://example.com/mathnet-corpus/"
+```
+
+Then build and sync both native projects:
+
+```sh
+npm run cap:sync
+```
+
+Platform commands:
+
+```sh
+npm run ios:run
+npm run android:run
+```
+
+Production builds intentionally exclude `public/`. The build fails if corpus JSON, SQLite files, or the source image directory enter `dist`.
+
+## Verification
+
+```sh
+npm test
+npm run lint
+npm run build
+```
+
+See [docs/architecture/mobile-corpus.md](docs/architecture/mobile-corpus.md) for the architecture, measured baseline, and remaining release gates.

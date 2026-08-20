@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { QuizQuestion } from '../types';
 import LatexRenderer from './LatexRenderer';
 
@@ -10,22 +10,23 @@ interface FlashcardProps {
 }
 
 const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
+  const shouldReduceMotion = useReducedMotion();
   // If options array is empty, it means options are likely embedded in the question text.
   // In this case, we align text to the left for better readability of multi-line questions.
   const hasSeparateOptions = data.options && data.options.length > 0;
 
   return (
-    <div className="relative w-full max-w-2xl h-[600px] perspective-1000 group cursor-pointer" onClick={onFlip}>
+    <div className="relative w-full max-w-2xl h-[clamp(360px,65dvh,600px)] perspective-1000 group cursor-pointer" onClick={onFlip}>
       <motion.div
         className="w-full h-full relative preserve-3d"
         initial={false}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.45, type: "spring", stiffness: 260, damping: 24 }}
         style={{ transformStyle: 'preserve-3d' }}
       >
         {/* FRONT */}
         <div 
-            className="absolute inset-0 backface-hidden w-full h-full bg-slate-800/90 backdrop-blur-xl border border-white/10 rounded-3xl flex flex-col shadow-2xl overflow-hidden"
+            className="absolute inset-0 backface-hidden w-full h-full bg-slate-800/95 md:backdrop-blur-xl border border-white/10 rounded-3xl flex flex-col shadow-2xl overflow-hidden"
             style={{ backfaceVisibility: 'hidden' }}
         >
           {/* Header (Fixed) */}
@@ -69,7 +70,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
 
         {/* BACK */}
         <div 
-            className="absolute inset-0 backface-hidden w-full h-full bg-slate-900/95 backdrop-blur-xl border border-emerald-500/30 rounded-3xl flex flex-col shadow-2xl shadow-emerald-900/20 overflow-hidden"
+            className="absolute inset-0 backface-hidden w-full h-full bg-slate-900/95 md:backdrop-blur-xl border border-emerald-500/30 rounded-3xl flex flex-col shadow-2xl shadow-emerald-900/20 overflow-hidden"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           {/* Header */}
@@ -110,7 +111,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
       </motion.div>
       
       {/* Glow Effect behind */}
-      <div className={`absolute -inset-4 bg-gradient-to-r ${isFlipped ? 'from-emerald-600/30 to-teal-600/30' : 'from-blue-600/30 to-indigo-600/30'} opacity-40 blur-3xl -z-10 transition-colors duration-500`} />
+      <div className={`absolute -inset-4 hidden md:block bg-gradient-to-r ${isFlipped ? 'from-emerald-600/30 to-teal-600/30' : 'from-blue-600/30 to-indigo-600/30'} opacity-40 blur-3xl -z-10 transition-colors duration-500`} />
     </div>
   );
 };
