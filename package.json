@@ -13,13 +13,20 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "cap:sync": "vite build && cap sync ios",
+    "cap:sync": "npm run build && cap sync",
+    "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "ios:run": "vite build && cap sync ios && cap run ios"
+    "ios:run": "npm run ios:sync && cap run ios",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:run": "npm run android:sync && cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "@capacitor/file-transfer": "^2.0.5",
+    "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.3.4",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
