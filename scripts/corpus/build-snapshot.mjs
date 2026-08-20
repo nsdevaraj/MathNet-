@@ -107,6 +107,7 @@ const insertQuestion = database.prepare(`
 const insertMetadata = database.prepare('INSERT INTO metadata (key, value) VALUES (?, ?)');
 
 let acceptedCount = 0;
+let excludedCount = 0;
 let rejectedCount = 0;
 
 database.exec('BEGIN IMMEDIATE');
@@ -134,6 +135,10 @@ try {
         topic: rawQuestion.topic,
         subtopic: rawQuestion.subtopic,
       });
+      if (!classification) {
+        excludedCount += 1;
+        continue;
+      }
 
       insertQuestion.run(
         stableId,
@@ -195,6 +200,7 @@ const manifest = {
   classificationVersion: CLASSIFICATION_VERSION,
   corpusVersion: corpusVersionFor(sourceIndex.lastUpdated, limit),
   totalQuestions: acceptedCount,
+  excludedQuestions: excludedCount,
   rejectedQuestions: rejectedCount,
   database: {
     file: basename(databasePath),

@@ -53,8 +53,7 @@ async function main() {
 
   const addQuestion = (q, rawChapterString) => {
     if (!q.question || q.question.length < 5) return;
-    totalParsed++;
-    
+
     // Categorize
     const category = categorizeQuestion(q.question, q.subject, rawChapterString || '');
         const classification = normalizeQuestionClassification({
@@ -62,6 +61,9 @@ async function main() {
             topic: category.topic,
             subtopic: category.subtopic,
         });
+        if (!classification) return;
+
+        totalParsed++;
         q.subject = classification.subject;
         q.topic = classification.topic;
         q.subtopic = classification.subtopic;

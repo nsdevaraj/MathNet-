@@ -45,6 +45,7 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
       topic: item.topic,
       subtopic: item.subtopic,
     });
+    if (!classification) return null;
     const options: QuizOption[] = item.options || [];
 
     const idVal = Number(item.index || item.id);
@@ -69,12 +70,13 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
  */
 export const streamQuestions = async (
   onChunkLoaded: (chunk: QuizQuestion[], progress: number, isComplete: boolean) => void,
-  onError: (err: any) => void
+  onError: (err: any) => void,
+  signal?: AbortSignal,
 ) => {
   try {
     let chunks: string[] = [];
     try {
-      const indexRes = await fetch(corpusUrl('mathnet_index.json'));
+      const indexRes = await fetch(corpusUrl('mathnet_index.json'), { signal });
       if (indexRes.ok) {
         const indexData = await indexRes.json();
         chunks = indexData.chunks || [];
@@ -85,10 +87,10 @@ export const streamQuestions = async (
 
     // Fallback backward compatibility
     if (chunks.length === 0) {
-      const res = await fetch(corpusUrl('mathnet.json'));
+      const res = await fetch(corpusUrl('mathnet.json'), { signal });
        if (!res.ok) {
          // Try one last thing, maybe it's just mathnet_0.json without an index
-         const res0 = await fetch(corpusUrl('mathnet_0.json'));
+        const res0 = await fetch(corpusUrl('mathnet_0.json'), { signal });
          if(res0.ok) {
             const chunkData = normalizeData(await res0.json());
             onChunkLoaded(chunkData, 100, true);
@@ -104,7 +106,8 @@ export const streamQuestions = async (
     // Stream chunks progressively
     let accumulatedCount = 0;
     for (let i = 0; i < chunks.length; i++) {
-        const res = await fetch(corpusUrl(chunks[i]));
+      if (signal?.aborted) return;
+      const res = await fetch(corpusUrl(chunks[i]), { signal });
         if (!res.ok) continue;
         
         const rawData = await res.json();
@@ -116,6 +119,7 @@ export const streamQuestions = async (
     }
 
   } catch (err) {
+    if (signal?.aborted) return;
     console.warn("Stream failed, resorting to fallback data", err);
     onChunkLoaded(FALLBACK_DATA, 100, true);
     onError(err);

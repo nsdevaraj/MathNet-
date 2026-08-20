@@ -32,7 +32,7 @@ Native and browser routes split at startup:
 - A completed paused download resumes at verification without downloading twice.
 - The repository exposes paged queries, facets, FTS search, and stable string identifiers; page size is capped at 50 and the trainer requests one active record.
 
-The current full snapshot contains 78,805 rows, builds in about 3.5 seconds, verifies in about 0.6 seconds, and is 232,923,136 bytes uncompressed. Gzip reduces it to roughly 77.7 MB, but transparent CDN compression or a native staged decompression design must be validated before relying on that transfer size.
+The current full snapshot contains 71,911 rows and is 214,937,600 bytes uncompressed. Legacy `Mathematics (Multi-modal)` and `General Science` records are normalized under `Mathematics (Olympiad)` as the `JEE` and `General` topics respectively. Their former broad topics remain available as subtopics. Chemistry and Physics are excluded from both browser loading and generated snapshots (6,894 source records). The corpus version includes the classification version so installed apps do not mistake reclassified data for an unchanged snapshot.
 
 After the implementation, both synced native web payloads are about 2.5 MB. The compiled iOS simulator application is about 29 MB and builds successfully with SQLite, Filesystem, and File Transfer plugins.
 

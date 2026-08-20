@@ -51,3 +51,14 @@ test('leaves existing Olympiad classifications unchanged', () => {
     },
   );
 });
+
+test('excludes Chemistry and Physics questions', () => {
+  assert.equal(
+    normalizeQuestionClassification({ subject: 'Chemistry', topic: 'Organic Chemistry' }),
+    null,
+  );
+  assert.equal(
+    normalizeQuestionClassification({ subject: 'Physics', topic: 'Mechanics' }),
+    null,
+  );
+});

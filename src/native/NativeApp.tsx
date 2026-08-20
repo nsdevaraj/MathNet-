@@ -70,21 +70,7 @@ const NativeTrainer = ({ repository }: { repository: QuestionRepository }) => {
           />
         </label>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <label>
-            <span className="sr-only">Subject</span>
-            <select
-              className="h-10 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-sm outline-none focus:border-blue-500"
-              value={session.subject}
-              onChange={(event) => session.selectSubject(event.target.value)}
-            >
-              <option value="">All subjects</option>
-              {session.facets.subjects.map((facet) => (
-                <option key={facet.value} value={facet.value}>{facet.value} ({facet.count})</option>
-              ))}
-            </select>
-          </label>
-
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <label>
             <span className="sr-only">Topic</span>
             <select

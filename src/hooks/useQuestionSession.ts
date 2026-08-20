@@ -11,7 +11,6 @@ const EMPTY_FACETS: CorpusFacets = {
 export const useQuestionSession = (repository: QuestionRepository) => {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search.trim());
-  const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
   const [subtopic, setSubtopic] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -22,7 +21,6 @@ export const useQuestionSession = (repository: QuestionRepository) => {
   const [error, setError] = useState<string>();
 
   const filters: QuestionFilters = {
-    subject: subject || undefined,
     topic: topic || undefined,
     subtopic: subtopic || undefined,
     search: deferredSearch || undefined,
@@ -30,7 +28,7 @@ export const useQuestionSession = (repository: QuestionRepository) => {
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [deferredSearch, subject, topic, subtopic]);
+  }, [deferredSearch, topic, subtopic]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,7 +51,7 @@ export const useQuestionSession = (repository: QuestionRepository) => {
       });
 
     return () => controller.abort();
-  }, [repository, currentIndex, deferredSearch, subject, topic, subtopic]);
+  }, [repository, currentIndex, deferredSearch, topic, subtopic]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,15 +65,7 @@ export const useQuestionSession = (repository: QuestionRepository) => {
       });
 
     return () => controller.abort();
-  }, [repository, deferredSearch, subject, topic, subtopic]);
-
-  const selectSubject = (value: string) => {
-    startTransition(() => {
-      setSubject(value);
-      setTopic('');
-      setSubtopic('');
-    });
-  };
+  }, [repository, deferredSearch, topic, subtopic]);
 
   const selectTopic = (value: string) => {
     startTransition(() => {
@@ -97,14 +87,12 @@ export const useQuestionSession = (repository: QuestionRepository) => {
     facets,
     isLoading,
     search,
-    subject,
     subtopic,
     topic,
     total,
     goTo,
     next: () => goTo(currentIndex + 1),
     previous: () => goTo(currentIndex - 1),
-    selectSubject,
     selectSubtopic: setSubtopic,
     selectTopic,
     setSearch,

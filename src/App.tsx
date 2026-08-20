@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Download, Search, RefreshCw, ArrowLeft, ArrowRight, Menu, X, Database, Filter, Hash } from 'lucide-react';
+import { Download, Search, RefreshCw, ArrowLeft, ArrowRight, Menu, X, Database, Hash } from 'lucide-react';
 import { streamQuestions } from './services/dataService';
 import { QuizQuestion, FetchStatus } from './types';
 import Flashcard from './components/Flashcard';
@@ -13,7 +13,6 @@ const App: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All');
   const [selectedTopic, setSelectedTopic] = useState('All');
   const [selectedSubtopic, setSelectedSubtopic] = useState('All');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -23,11 +22,17 @@ const App: React.FC = () => {
 
   // Load Data via Streaming
   useEffect(() => {
+    const controller = new AbortController();
+    let isActive = true;
+
+    setQuestions([]);
     setStatus('loading');
+    setDownloadProgress(-1);
     let firstRenderFired = false;
 
-    streamQuestions(
+    void streamQuestions(
       (newQuestions, percent, isComplete) => {
+          if (!isActive) return;
           setQuestions(prev => [...prev, ...newQuestions]);
           setDownloadProgress(percent);
 
@@ -40,47 +45,37 @@ const App: React.FC = () => {
           if (isComplete) setDownloadProgress(100);
       },
       (err) => {
+          if (!isActive) return;
           if (!firstRenderFired) setStatus('error');
-      }
+      },
+      controller.signal,
     );
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
   }, []);
 
-  // Extract Subjects, Topics, Subtopics
-  const subjects = useMemo(() => {
-    const uniqueSubjects = new Set(questions.map(q => q.subject).filter(Boolean));
-    const sorted = Array.from(uniqueSubjects).sort();
-    return ['All', ...sorted];
-  }, [questions]);
-
+  // Extract Topics and Subtopics
   const topics = useMemo(() => {
-    let relevantQuestions = questions;
-    if (selectedSubject !== 'All') {
-      relevantQuestions = relevantQuestions.filter(q => q.subject === selectedSubject);
-    }
-    const uniqueTopics = new Set(relevantQuestions.map(q => q.topic).filter(Boolean));
+    const uniqueTopics = new Set(questions.map(q => q.topic).filter(Boolean));
     return ['All', ...Array.from(uniqueTopics).sort()];
-  }, [questions, selectedSubject]);
+  }, [questions]);
 
   const subtopics = useMemo(() => {
     let relevantQuestions = questions;
-    if (selectedSubject !== 'All') {
-      relevantQuestions = relevantQuestions.filter(q => q.subject === selectedSubject);
-    }
     if (selectedTopic !== 'All') {
       relevantQuestions = relevantQuestions.filter(q => q.topic === selectedTopic);
     }
     const uniqueSubtopics = new Set(relevantQuestions.map(q => q.subtopic).filter(Boolean));
     return ['All', ...Array.from(uniqueSubtopics).sort()];
-  }, [questions, selectedSubject, selectedTopic]);
+  }, [questions, selectedTopic]);
 
   // Filter Logic
   const filteredQuestions = useMemo(() => {
     let result = questions;
 
-    if (selectedSubject !== 'All') {
-      result = result.filter(q => q.subject === selectedSubject);
-    }
-    
     if (selectedTopic !== 'All') {
       result = result.filter(q => q.topic === selectedTopic);
     }
@@ -98,13 +93,13 @@ const App: React.FC = () => {
     }
 
     return result;
-  }, [questions, searchQuery, selectedSubject, selectedTopic, selectedSubtopic]);
+  }, [questions, searchQuery, selectedTopic, selectedSubtopic]);
 
   // Reset index when filters change
   useEffect(() => {
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [selectedSubject, selectedTopic, selectedSubtopic, searchQuery]);
+  }, [selectedTopic, selectedSubtopic, searchQuery]);
 
   // Sync jump input with current index
   useEffect(() => {
@@ -242,7 +237,6 @@ const App: React.FC = () => {
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs md:text-sm text-slate-500">
                 {filteredQuestions.length} questions
-                {selectedSubject !== 'All' ? ` • ${selectedSubject}` : ''}
                 {selectedTopic !== 'All' ? ` • ${selectedTopic}` : ''}
                 {selectedSubtopic !== 'All' ? ` • ${selectedSubtopic}` : ''}
               </p>
@@ -284,47 +278,27 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {subjects.length > 1 && (
+        {topics.length > 1 && (
           <div className="flex flex-col gap-3 mt-4">
             <div className="flex flex-wrap items-center gap-2">
-               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20 flex items-center"><Filter className="w-3 h-3 mr-1" /> Subject</span>
-               {subjects.map(sub => (
+               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Topic</span>
+               {topics.map(t => (
                  <button
-                   key={sub}
-                   onClick={() => { setSelectedSubject(sub); setSelectedTopic('All'); setSelectedSubtopic('All'); }}
+                   key={t}
+                   onClick={() => { setSelectedTopic(t); setSelectedSubtopic('All'); }}
                    className={`
-                     px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-200
-                     ${selectedSubject === sub 
-                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+                     px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
+                     ${selectedTopic === t 
+                       ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25' 
                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
                    `}
                  >
-                   {sub}
+                   {t}
                  </button>
                ))}
             </div>
 
-            {selectedSubject === 'Mathematics (Olympiad)' && topics.length > 1 && (
-              <div className="flex flex-wrap items-center gap-2">
-                 <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Topic</span>
-                 {topics.map(t => (
-                   <button
-                     key={t}
-                     onClick={() => { setSelectedTopic(t); setSelectedSubtopic('All'); }}
-                     className={`
-                       px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
-                       ${selectedTopic === t 
-                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25' 
-                         : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}
-                     `}
-                   >
-                     {t}
-                   </button>
-                 ))}
-              </div>
-            )}
-
-            {selectedSubject === 'Mathematics (Olympiad)' && subtopics.length > 1 && (
+            {subtopics.length > 1 && (
               <div className="flex flex-wrap items-center gap-2">
                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold whitespace-nowrap w-20">Subtopic</span>
                  {subtopics.map(st => (
@@ -355,7 +329,7 @@ const App: React.FC = () => {
              <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
              <h3 className="text-xl font-semibold text-white">No results found</h3>
              <p className="text-slate-500 mt-2">
-               No questions found for <span className="text-blue-400">"{searchQuery}"</span> in {selectedSubject}.
+               No questions found for <span className="text-blue-400">"{searchQuery}"</span> with the current filters.
              </p>
              <div className="flex gap-4 justify-center mt-6">
                 <button 
@@ -365,7 +339,7 @@ const App: React.FC = () => {
                   Clear Search
                 </button>
                 <button 
-                  onClick={() => { setSelectedSubject('All'); setSelectedTopic('All'); setSelectedSubtopic('All'); }}
+                  onClick={() => { setSelectedTopic('All'); setSelectedSubtopic('All'); }}
                   className="px-4 py-2 bg-blue-600 rounded-lg text-sm hover:bg-blue-500 transition"
                 >
                   Reset Filters
@@ -482,21 +456,6 @@ const App: React.FC = () => {
                    />
                    <button type="submit" className="text-xs bg-blue-600 px-2 py-1 rounded text-white ml-2">Go</button>
                  </form>
-               </div>
-
-                <div>
-                 <label className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-2 block">Subject</label>
-                 <div className="flex flex-wrap gap-2">
-                    {subjects.map(sub => (
-                       <button
-                         key={sub}
-                         onClick={() => { setSelectedSubject(sub); setSelectedTopic('All'); setSelectedSubtopic('All'); setSidebarOpen(false); }}
-                         className={`px-3 py-2 rounded-lg text-sm ${selectedSubject === sub ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-                       >
-                         {sub}
-                       </button>
-                    ))}
-                 </div>
                </div>
 
                <button 
