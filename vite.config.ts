@@ -10,6 +10,7 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        'canvg': path.resolve(__dirname, 'src/shims/canvg.ts'),
       },
     },
     server: {
