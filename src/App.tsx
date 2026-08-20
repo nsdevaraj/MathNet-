@@ -490,7 +490,7 @@ const App: React.FC = () => {
         {activeQuestion && (
           <div>
             <div className="mb-6 pb-4 border-b border-slate-700">
-              <h1 className="text-2xl font-bold text-blue-400 mb-2">JEE Flashcards - {activeQuestion.subject}</h1>
+              <h1 className="text-2xl font-bold text-blue-400 mb-2">JEE Flashcards</h1>
               <p className="text-slate-400">Question ID: {activeQuestion.id}</p>
             </div>
             

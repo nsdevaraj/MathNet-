@@ -32,7 +32,6 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
           {/* Header (Fixed) */}
           <div className="w-full p-6 md:p-8 pb-2 flex items-center gap-2 shrink-0 z-10">
              <span className="text-xs font-bold tracking-widest text-slate-400 uppercase bg-slate-900/50 px-2 py-1 rounded">Question</span>
-             {data.subject && <span className="text-xs font-bold tracking-widest text-blue-400 uppercase bg-blue-900/20 px-2 py-1 rounded">{data.subject}</span>}
           </div>
           
           {/* Scrollable Content */}
