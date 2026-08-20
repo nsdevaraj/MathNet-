@@ -44,6 +44,7 @@ export type CorpusInstallPhase =
   | 'downloading'
   | 'verifying'
   | 'installing'
+  | 'paused'
   | 'ready'
   | 'failed';
 

@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Download, Search, RefreshCw, ArrowLeft, ArrowRight, Menu, X, Database, Filter, Hash } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import { streamQuestions } from './services/dataService';
 import { QuizQuestion, FetchStatus } from './types';
 import Flashcard from './components/Flashcard';
@@ -154,6 +152,11 @@ const App: React.FC = () => {
     if (!element) return;
 
     try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+
       element.style.left = '0px';
       element.style.top = '0px';
       element.style.zIndex = '-100';

@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import katex from 'katex';
 import { marked } from 'marked';
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 
 interface LatexRendererProps {
   text: string;
@@ -44,17 +50,11 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
     protectedText = replaceMath(protectedText, /\$([\s\S]*?)\$/g, 'inline');
 
     // 5. Parse Markdown
-    // Enable breaks to treat \n as <br>
-    marked.setOptions({
-        gfm: true,
-        breaks: true, 
-    });
-    
     let rawHtml = marked.parse(protectedText) as string;
 
     // Add referrerPolicy to all images to ensure they load
     // Catch <img whether it has a space immediately after or not
-    rawHtml = rawHtml.replace(/<img\b/gi, '<img referrerpolicy="no-referrer" ');
+    rawHtml = rawHtml.replace(/<img\b/gi, '<img referrerpolicy="no-referrer" loading="lazy" ');
 
     // 6. Restore and Render LaTeX
     latexMap.forEach((data, id) => {
@@ -63,7 +63,7 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
           displayMode: data.type === 'block',
           throwOnError: false,
           output: 'html',
-          trust: true
+          trust: false
         });
         // Replace the token with the rendered HTML. 
         // Using split/join is safer than replace() for tokens that might be repeated or contain special chars (though ours don't).
@@ -75,7 +75,10 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
       }
     });
 
-    return rawHtml;
+    return DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ['referrerpolicy', 'loading'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
+    });
   }, [text]);
 
   return (
