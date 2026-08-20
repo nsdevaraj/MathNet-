@@ -1,6 +1,6 @@
 # OlympiadMath
 
-OlympiadMath is a React and Capacitor trainer for a large mathematics and science question corpus. The browser development build can still read the generated JSON chunks in `public/`. Native builds package only the application shell and install a verified SQLite/FTS snapshot after first launch.
+OlympiadMath is a React and Capacitor trainer for a large mathematics and science question corpus. Browser development builds read the generated JSON chunks in `public/`, while production browser builds stream the same chunks from the corpus endpoint. Native builds package only the application shell and install a verified SQLite/FTS snapshot after first launch.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ npm run corpus:snapshot
 npm run corpus:verify
 ```
 
-Output is written to the ignored `artifacts/corpus/` directory. Publish `manifest.json` and `mathnet.sqlite3` together under the HTTPS directory configured by `VITE_CORPUS_BASE_URL`.
+Output is written to the ignored `artifacts/corpus/` directory. The publishing command uploads `manifest.json`, `mathnet.sqlite3`, and the browser JSON chunks together under the HTTPS directory configured by `VITE_CORPUS_BASE_URL`.
 
 To publish the default public Hugging Face dataset, authenticate locally and run:
 
@@ -66,7 +66,7 @@ npm run ios:run
 npm run android:run
 ```
 
-Production builds intentionally exclude `public/`. The build fails if corpus JSON, SQLite files, or the source image directory enter `dist`.
+Production builds intentionally exclude `public/` to stay within hosting limits. Browser builds load JSON chunks from `VITE_CORPUS_BASE_URL`, or from the default public Hugging Face dataset when the variable is unset. The build fails if corpus JSON, SQLite files, or the source image directory enter `dist`.
 
 ## Verification
 

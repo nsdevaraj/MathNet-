@@ -1,10 +1,12 @@
 import { QuizQuestion, QuizOption } from '../types';
 import { normalizeQuestionClassification } from '../corpus/classification.js';
 
+const DEFAULT_CORPUS_BASE_URL =
+  'https://huggingface.co/datasets/devarajns/olympiadmath-corpus/resolve/main/';
 const configuredCorpusBaseUrl = import.meta.env.VITE_CORPUS_BASE_URL?.trim();
 const corpusBaseUrl = configuredCorpusBaseUrl
   ? `${configuredCorpusBaseUrl.replace(/\/$/, '')}/`
-  : import.meta.env.BASE_URL;
+  : DEFAULT_CORPUS_BASE_URL;
 
 const corpusUrl = (fileName: string): string => `${corpusBaseUrl}${fileName}`;
 
