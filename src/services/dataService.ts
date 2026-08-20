@@ -1,8 +1,15 @@
 import { QuizQuestion, QuizOption } from '../types';
 
+const configuredCorpusBaseUrl = import.meta.env.VITE_CORPUS_BASE_URL?.trim();
+const corpusBaseUrl = configuredCorpusBaseUrl
+  ? `${configuredCorpusBaseUrl.replace(/\/$/, '')}/`
+  : import.meta.env.BASE_URL;
+
+const corpusUrl = (fileName: string): string => `${corpusBaseUrl}${fileName}`;
+
 const FALLBACK_DATA: QuizQuestion[] = [
   {
-    id: 1,
+    id: "fallback:1",
     subject: "Mathematics",
     question: "If $f(x) = x^2 + 2x + 1$, what is $f(1)$?",
     options: [],
@@ -39,7 +46,7 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
     const finalId = !isNaN(idVal) && idVal !== 0 ? idVal : offsetId + index + 1;
 
     return {
-        id: finalId,
+      id: String(finalId),
         question: qText,
         options,
         answer: String(answer),
@@ -62,7 +69,7 @@ export const streamQuestions = async (
   try {
     let chunks: string[] = [];
     try {
-      const indexRes = await fetch(`${import.meta.env.BASE_URL}mathnet_index.json`);
+      const indexRes = await fetch(corpusUrl('mathnet_index.json'));
       if (indexRes.ok) {
         const indexData = await indexRes.json();
         chunks = indexData.chunks || [];
@@ -73,10 +80,10 @@ export const streamQuestions = async (
 
     // Fallback backward compatibility
     if (chunks.length === 0) {
-       const res = await fetch(`${import.meta.env.BASE_URL}mathnet.json`);
+      const res = await fetch(corpusUrl('mathnet.json'));
        if (!res.ok) {
          // Try one last thing, maybe it's just mathnet_0.json without an index
-         const res0 = await fetch(`${import.meta.env.BASE_URL}mathnet_0.json`);
+         const res0 = await fetch(corpusUrl('mathnet_0.json'));
          if(res0.ok) {
             const chunkData = normalizeData(await res0.json());
             onChunkLoaded(chunkData, 100, true);
@@ -92,7 +99,7 @@ export const streamQuestions = async (
     // Stream chunks progressively
     let accumulatedCount = 0;
     for (let i = 0; i < chunks.length; i++) {
-        const res = await fetch(`${import.meta.env.BASE_URL}${chunks[i]}`);
+        const res = await fetch(corpusUrl(chunks[i]));
         if (!res.ok) continue;
         
         const rawData = await res.json();

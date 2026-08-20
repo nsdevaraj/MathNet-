@@ -10,3 +10,4 @@ coverage/
 # Generated Data
 public/mathnet*.json
 tmp_parquets/
+artifacts/

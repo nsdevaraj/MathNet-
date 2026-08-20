@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "npx tsx parse.js && npx tsx legacy_support.js && vite build",
+    "build": "vite build && node scripts/assert-shell-build.mjs",
+    "corpus:build": "tsx parse.js && tsx legacy_support.js",
+    "corpus:snapshot": "node scripts/corpus/build-snapshot.mjs",
+    "corpus:verify": "node scripts/corpus/verify-snapshot.mjs",
+    "build:with-corpus": "npm run corpus:build && npm run build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",

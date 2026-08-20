@@ -3,8 +3,10 @@ export interface QuizOption {
   text: string;
 }
 
+export type QuestionId = string;
+
 export interface QuizQuestion {
-  id: number;
+  id: QuestionId;
   question: string;
   options: QuizOption[];
   answer: string;
