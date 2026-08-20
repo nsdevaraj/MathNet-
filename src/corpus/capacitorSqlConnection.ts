@@ -26,34 +26,53 @@ export const filePathFromUri = (uri: string): string => {
 export class CapacitorSqlConnection implements SqlConnection {
   private readonly sqlite = new SQLiteConnection(CapacitorSQLite);
   private database?: SQLiteDBConnection;
+  // The native SQLite plugin holds one handle per connection. Overlapping calls
+  // race inside that handle and abort the process on device, so every bridge
+  // call is chained onto a single queue.
+  private queue: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly databasePath: string,
     private readonly schemaVersion: number,
   ) {}
 
-  async open(): Promise<void> {
-    if (this.database) return;
-
-    const existingConnection = await this.sqlite.isNCConnection(this.databasePath);
-    this.database = existingConnection.result
-      ? await this.sqlite.retrieveNCConnection(this.databasePath)
-      : await this.sqlite.createNCConnection(this.databasePath, this.schemaVersion);
-
-    if (!(await this.database.isDBOpen()).result) await this.database.open();
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(operation, operation);
+    this.queue = result.catch(() => undefined);
+    return result;
   }
 
-  async query(statement: string, values: unknown[] = []): Promise<SqlQueryResult> {
-    if (!this.database) throw new Error('Corpus database connection is not open.');
-    return this.database.query(statement, values);
+  open(): Promise<void> {
+    return this.enqueue(async () => {
+      if (this.database) return;
+
+      const existingConnection = await this.sqlite.isNCConnection(this.databasePath);
+      const database = existingConnection.result
+        ? await this.sqlite.retrieveNCConnection(this.databasePath)
+        : await this.sqlite.createNCConnection(this.databasePath, this.schemaVersion);
+
+      if (!(await database.isDBOpen()).result) await database.open();
+      this.database = database;
+    });
   }
 
-  async close(): Promise<void> {
-    if (!this.database) return;
+  query(statement: string, values: unknown[] = []): Promise<SqlQueryResult> {
+    return this.enqueue(async () => {
+      const database = this.database;
+      if (!database) throw new Error('Corpus database connection is not open.');
+      return database.query(statement, values);
+    });
+  }
 
-    if ((await this.database.isDBOpen()).result) await this.database.close();
-    await this.sqlite.closeNCConnection(this.databasePath);
-    this.database = undefined;
+  close(): Promise<void> {
+    return this.enqueue(async () => {
+      const database = this.database;
+      if (!database) return;
+
+      this.database = undefined;
+      if ((await database.isDBOpen()).result) await database.close();
+      await this.sqlite.closeNCConnection(this.databasePath);
+    });
   }
 }
 
