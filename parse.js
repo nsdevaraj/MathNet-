@@ -3,6 +3,7 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import { categorizeQuestion } from './categorizer.js';
+import { normalizeQuestionClassification } from './src/corpus/classification.js';
 
 const downloadFile = async (url, dest) => {
   return new Promise((resolve, reject) => {
@@ -56,8 +57,14 @@ async function main() {
     
     // Categorize
     const category = categorizeQuestion(q.question, q.subject, rawChapterString || '');
-    q.topic = category.topic;
-    q.subtopic = category.subtopic;
+        const classification = normalizeQuestionClassification({
+            subject: q.subject,
+            topic: category.topic,
+            subtopic: category.subtopic,
+        });
+        q.subject = classification.subject;
+        q.topic = classification.topic;
+        q.subtopic = classification.subtopic;
 
     if (!counts.subjects[q.subject]) counts.subjects[q.subject] = 0;
     counts.subjects[q.subject]++;

@@ -1,4 +1,5 @@
 import { QuizQuestion, QuizOption } from '../types';
+import { normalizeQuestionClassification } from '../corpus/classification.js';
 
 const configuredCorpusBaseUrl = import.meta.env.VITE_CORPUS_BASE_URL?.trim();
 const corpusBaseUrl = configuredCorpusBaseUrl
@@ -39,7 +40,11 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
 
     const qText = item.question || "Question Text Missing";
     const answer = item.gold || item.answer || "See Solution";
-    const subject = mapSubject(item.subject);
+    const classification = normalizeQuestionClassification({
+      subject: mapSubject(item.subject),
+      topic: item.topic,
+      subtopic: item.subtopic,
+    });
     const options: QuizOption[] = item.options || [];
 
     const idVal = Number(item.index || item.id);
@@ -51,9 +56,9 @@ const normalizeData = (data: any, offsetId: number = 0): QuizQuestion[] => {
         options,
         answer: String(answer),
         solution: item.solution || "",
-        subject: String(subject),
-        topic: item.topic || "Unknown",
-        subtopic: item.subtopic || "Unknown",
+        subject: classification.subject,
+        topic: classification.topic,
+        subtopic: classification.subtopic,
     };
   }).filter((q): q is QuizQuestion => q !== null && !!q.question); 
 };

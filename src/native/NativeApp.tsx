@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
   ChevronLeft,
@@ -7,7 +7,6 @@ import {
   Download,
   Search,
 } from 'lucide-react';
-import Flashcard from '../components/Flashcard';
 import type { CorpusInstaller, CorpusInstallState, QuestionRepository } from '../corpus/contracts';
 import {
   configuredCorpusBaseUrl,
@@ -16,6 +15,8 @@ import {
   openNativeQuestionRepository,
 } from '../corpus/nativeCorpusRuntime';
 import { useQuestionSession } from '../hooks/useQuestionSession';
+
+const Flashcard = lazy(() => import('../components/Flashcard'));
 
 const INITIAL_INSTALL_STATE: CorpusInstallState = {
   phase: 'checking',
@@ -123,12 +124,14 @@ const NativeTrainer = ({ repository }: { repository: QuestionRepository }) => {
             <span>{session.error}</span>
           </div>
         ) : session.activeQuestion ? (
-          <Flashcard
-            key={session.activeQuestion.id}
-            data={session.activeQuestion}
-            isFlipped={isFlipped}
-            onFlip={() => setIsFlipped((flipped) => !flipped)}
-          />
+          <Suspense fallback={<div className="text-sm text-slate-400">Preparing question...</div>}>
+            <Flashcard
+              key={session.activeQuestion.id}
+              data={session.activeQuestion}
+              isFlipped={isFlipped}
+              onFlip={() => setIsFlipped((flipped) => !flipped)}
+            />
+          </Suspense>
         ) : (
           <div className="text-sm text-slate-400">{session.isLoading ? 'Loading question...' : 'No questions found.'}</div>
         )}

@@ -9,6 +9,10 @@ import {
 } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import {
+  CLASSIFICATION_VERSION,
+  normalizeQuestionClassification,
+} from '../../src/corpus/classification.js';
 
 const SCHEMA_VERSION = 1;
 
@@ -24,6 +28,14 @@ const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedL
 const indexPath = join(sourceDirectory, 'mathnet_index.json');
 const databasePath = join(outputDirectory, 'mathnet.sqlite3');
 const manifestPath = join(outputDirectory, 'manifest.json');
+
+const corpusVersionFor = (lastUpdated, sampleLimit) => {
+  const sourceVersion = String(lastUpdated ?? 'unversioned');
+  const classificationVersion = `classification-${CLASSIFICATION_VERSION}`;
+  return sampleLimit === undefined
+    ? `${sourceVersion}-${classificationVersion}`
+    : `${sourceVersion}-${classificationVersion}-sample-${sampleLimit}`;
+};
 
 if (!existsSync(indexPath)) {
   throw new Error(`Corpus index not found: ${indexPath}`);
@@ -117,14 +129,19 @@ try {
       const sourceRecordId = String(rawQuestion.id ?? rawQuestion.index ?? acceptedCount + 1);
       const stableId = rawQuestion.stableId ? String(rawQuestion.stableId) : `legacy:${sourceRecordId}`;
       const options = Array.isArray(rawQuestion.options) ? rawQuestion.options : [];
+      const classification = normalizeQuestionClassification({
+        subject: rawQuestion.subject,
+        topic: rawQuestion.topic,
+        subtopic: rawQuestion.subtopic,
+      });
 
       insertQuestion.run(
         stableId,
         String(rawQuestion.source ?? 'legacy-generated'),
         sourceRecordId,
-        String(rawQuestion.subject ?? 'General'),
-        String(rawQuestion.topic ?? 'Unknown'),
-        String(rawQuestion.subtopic ?? 'Unknown'),
+        classification.subject,
+        classification.topic,
+        classification.subtopic,
         rawQuestion.question,
         String(rawQuestion.answer ?? rawQuestion.gold ?? 'See Solution'),
         String(rawQuestion.solution ?? ''),
@@ -136,9 +153,7 @@ try {
     if (limit !== undefined && acceptedCount >= limit) break;
   }
 
-  const corpusVersion = limit === undefined
-    ? String(sourceIndex.lastUpdated ?? 'unversioned')
-    : `${String(sourceIndex.lastUpdated ?? 'unversioned')}-sample-${limit}`;
+  const corpusVersion = corpusVersionFor(sourceIndex.lastUpdated, limit);
 
   insertMetadata.run('schema_version', String(SCHEMA_VERSION));
   insertMetadata.run('corpus_version', corpusVersion);
@@ -177,9 +192,8 @@ const databaseBytes = statSync(databasePath).size;
 const databaseSha256 = createHash('sha256').update(readFileSync(databasePath)).digest('hex');
 const manifest = {
   schemaVersion: SCHEMA_VERSION,
-  corpusVersion: limit === undefined
-    ? String(sourceIndex.lastUpdated ?? 'unversioned')
-    : `${String(sourceIndex.lastUpdated ?? 'unversioned')}-sample-${limit}`,
+  classificationVersion: CLASSIFICATION_VERSION,
+  corpusVersion: corpusVersionFor(sourceIndex.lastUpdated, limit),
   totalQuestions: acceptedCount,
   rejectedQuestions: rejectedCount,
   database: {
