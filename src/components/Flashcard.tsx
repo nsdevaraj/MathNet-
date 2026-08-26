@@ -35,7 +35,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
           </div>
           
           {/* Scrollable Content */}
-          <div className="flex-1 w-full overflow-y-auto custom-scrollbar relative">
+          <div className="flashcard-scroll min-h-0 flex-1 w-full overflow-y-auto custom-scrollbar relative">
             <div className="min-h-full flex flex-col justify-center p-6 md:p-8 pt-2">
                 {/* Removed whitespace-pre-wrap to let Markdown/HTML control the layout (tables, etc.) */}
                 <div className={`w-full font-medium leading-relaxed text-slate-200 ${hasSeparateOptions ? 'text-center text-xl md:text-2xl' : 'text-left text-base md:text-lg'}`}>
@@ -80,7 +80,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
           </div>
           
           {/* Scrollable Content */}
-          <div className="flex-1 w-full overflow-y-auto custom-scrollbar relative">
+          <div className="flashcard-scroll min-h-0 flex-1 w-full overflow-y-auto custom-scrollbar relative">
              <div className="min-h-full flex flex-col justify-center items-center p-6 md:p-8 pt-2 text-center">
                 <div className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
                    <LatexRenderer text={data.answer} />
