@@ -51,7 +51,10 @@ Create `.env.local` with the deployed artifact directory:
 
 ```dotenv
 VITE_CORPUS_BASE_URL="https://example.com/mathnet-corpus/"
+VITE_CORPUS_IMAGE_BASE_URL="https://example.com/mathnet-assets/"
 ```
+
+`VITE_CORPUS_IMAGE_BASE_URL` is optional. It defaults to the repository's hosted `public/` directory so corpus-relative image paths work without packaging the 305 MB image set in the app shell.
 
 Then build and sync both native projects:
 

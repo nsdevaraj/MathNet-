@@ -2,11 +2,15 @@ import React, { useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
 import { marked } from 'marked';
+import { DEFAULT_CORPUS_IMAGE_BASE_URL, resolveCorpusAssetUrl } from '../corpus/assets';
 
 marked.setOptions({
   gfm: true,
   breaks: true,
 });
+
+const corpusImageBaseUrl = import.meta.env.VITE_CORPUS_IMAGE_BASE_URL?.trim()
+  || DEFAULT_CORPUS_IMAGE_BASE_URL;
 
 interface LatexRendererProps {
   text: string;
@@ -52,10 +56,6 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
     // 5. Parse Markdown
     let rawHtml = marked.parse(protectedText) as string;
 
-    // Add referrerPolicy to all images to ensure they load
-    // Catch <img whether it has a space immediately after or not
-    rawHtml = rawHtml.replace(/<img\b/gi, '<img referrerpolicy="no-referrer" loading="lazy" ');
-
     // 6. Restore and Render LaTeX
     latexMap.forEach((data, id) => {
       try {
@@ -75,10 +75,23 @@ const LatexRenderer: React.FC<LatexRendererProps> = ({ text, className = "", blo
       }
     });
 
-    return DOMPurify.sanitize(rawHtml, {
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
       ADD_ATTR: ['referrerpolicy', 'loading'],
       FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
     });
+
+    const template = document.createElement('template');
+    template.innerHTML = sanitizedHtml;
+    template.content.querySelectorAll('img[src]').forEach((image) => {
+      const source = image.getAttribute('src');
+      if (!source) return;
+
+      image.setAttribute('src', resolveCorpusAssetUrl(source, corpusImageBaseUrl));
+      image.setAttribute('referrerpolicy', 'no-referrer');
+      image.setAttribute('loading', 'lazy');
+    });
+
+    return template.innerHTML;
   }, [text]);
 
   return (

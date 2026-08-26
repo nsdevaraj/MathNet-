@@ -27,7 +27,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
         {/* FRONT */}
         <div 
             className="absolute inset-0 backface-hidden w-full h-full bg-slate-800/95 md:backdrop-blur-xl border border-white/10 rounded-3xl flex flex-col shadow-2xl overflow-hidden"
-            style={{ backfaceVisibility: 'hidden' }}
+          style={{ backfaceVisibility: 'hidden', pointerEvents: isFlipped ? 'none' : 'auto' }}
         >
           {/* Header (Fixed) */}
           <div className="w-full p-6 md:p-8 pb-2 flex items-center gap-2 shrink-0 z-10">
@@ -70,7 +70,11 @@ const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip }) => {
         {/* BACK */}
         <div 
             className="absolute inset-0 backface-hidden w-full h-full bg-slate-900/95 md:backdrop-blur-xl border border-emerald-500/30 rounded-3xl flex flex-col shadow-2xl shadow-emerald-900/20 overflow-hidden"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              pointerEvents: isFlipped ? 'auto' : 'none',
+            }}
         >
           {/* Header */}
           <div className="w-full p-6 md:p-8 pb-2 shrink-0 z-10">
