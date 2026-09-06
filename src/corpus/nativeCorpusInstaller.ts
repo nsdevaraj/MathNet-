@@ -27,6 +27,7 @@ export interface NativeCorpusOperations {
   stat(path: string): Promise<{ size: number }>;
   readText(path: string): Promise<string | undefined>;
   writeText(path: string, value: string): Promise<void>;
+  sha256?(path: string, onProgress: (completedBytes: number) => void): Promise<string>;
   readBase64Chunks(path: string, chunkSize: number, onChunk: (chunk: string) => void): Promise<void>;
   download(url: string, destinationUri: string, onProgress: (progress: CorpusDownloadProgress) => void): Promise<void>;
 }
@@ -175,7 +176,7 @@ export class NativeCorpusInstaller implements CorpusInstaller {
       this.setState({
         phase: 'verifying',
         version: manifest.corpusVersion,
-        completedBytes: manifest.database.bytes,
+        completedBytes: 0,
         totalBytes: manifest.database.bytes,
       });
       await this.verifyStagingDatabase(manifest);
@@ -213,14 +214,28 @@ export class NativeCorpusInstaller implements CorpusInstaller {
       throw new Error(`Corpus file size mismatch: expected ${manifest.database.bytes}, received ${file.size}.`);
     }
 
-    const hash = sha256.create();
-    await this.dependencies.operations.readBase64Chunks(
-      STAGING_DATABASE_PATH,
-      1024 * 1024,
-      (chunk) => hash.update(bytesFromBase64(chunk)),
-    );
-
-    const actualHash = bytesToHex(hash.digest());
+    const onProgress = (completedBytes: number) => this.setState({
+      ...this.state,
+      completedBytes: Math.min(completedBytes, manifest.database.bytes),
+    });
+    let actualHash: string;
+    if (this.dependencies.operations.sha256) {
+      actualHash = await this.dependencies.operations.sha256(STAGING_DATABASE_PATH, onProgress);
+    } else {
+      const hash = sha256.create();
+      let completedBytes = 0;
+      await this.dependencies.operations.readBase64Chunks(
+        STAGING_DATABASE_PATH,
+        1024 * 1024,
+        (chunk) => {
+          const bytes = bytesFromBase64(chunk);
+          hash.update(bytes);
+          completedBytes += bytes.byteLength;
+          onProgress(completedBytes);
+        },
+      );
+      actualHash = bytesToHex(hash.digest());
+    }
     if (actualHash !== manifest.database.sha256) {
       throw new Error(`Corpus hash mismatch: expected ${manifest.database.sha256}, received ${actualHash}.`);
     }

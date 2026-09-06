@@ -154,6 +154,66 @@ test('rejects a bad hash without replacing the active corpus', async () => {
   assert.equal((await installer.getState()).error?.code, 'integrity');
 });
 
+test('uses native checksum verification without transferring the corpus into the WebView', async () => {
+  const payload = encoder.encode('new database');
+  const operations = new MemoryOperations(payload);
+  const manifest = manifestFor(payload);
+  const verifiedBytes: number[] = [];
+  Object.assign(operations, {
+    async sha256(path: string, onProgress: (completedBytes: number) => void) {
+      assert.equal(path, 'corpus/staging.sqlite3');
+      onProgress(4);
+      onProgress(payload.byteLength);
+      return manifest.database.sha256;
+    },
+    async readBase64Chunks() {
+      assert.fail('Android verification must not send database chunks through the WebView');
+    },
+  });
+  const installer = installerFor(operations, manifest);
+  installer.subscribe((state) => {
+    if (state.phase === 'verifying') verifiedBytes.push(state.completedBytes);
+  });
+
+  await installer.install();
+
+  assert.deepEqual(verifiedBytes, [0, 4, payload.byteLength]);
+  assert.equal((await installer.getState()).phase, 'ready');
+});
+
+test('rejects a corrupt native checksum without activating the download', async () => {
+  const payload = encoder.encode('new database');
+  const operations = new MemoryOperations(payload);
+  const oldDatabase = encoder.encode('old database');
+  operations.files.set('corpus/current.sqlite3', oldDatabase);
+  Object.assign(operations, { sha256: async () => '0'.repeat(64) });
+  const installer = installerFor(operations, manifestFor(payload), async () => {
+    assert.fail('A corrupt download must not reach SQLite validation');
+  });
+
+  await assert.rejects(installer.install(), /hash mismatch/);
+
+  assert.deepEqual(operations.files.get('corpus/current.sqlite3'), oldDatabase);
+  assert.equal((await installer.getState()).error?.code, 'integrity');
+});
+
+test('leaves verification with a visible failure when the native file read fails', async () => {
+  const payload = encoder.encode('new database');
+  const operations = new MemoryOperations(payload);
+  Object.assign(operations, {
+    async sha256() {
+      throw new Error('Corpus file verification failed: read error');
+    },
+  });
+  const installer = installerFor(operations, manifestFor(payload));
+
+  await assert.rejects(installer.install(), /read error/);
+
+  assert.equal((await installer.getState()).phase, 'failed');
+  assert.equal((await installer.getState()).error?.code, 'storage');
+  assert.equal(operations.files.has('corpus/current.sqlite3'), false);
+});
+
 test('rolls back when the activated database fails validation', async () => {
   const payload = encoder.encode('new database');
   const operations = new MemoryOperations(payload);

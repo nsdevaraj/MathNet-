@@ -1,9 +1,38 @@
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { FileTransfer } from '@capacitor/file-transfer';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { filePathFromUri, validateCorpusDatabase } from './capacitorSqlConnection';
 import { NativeCorpusInstaller, type NativeCorpusOperations } from './nativeCorpusInstaller';
 
 const directory = Directory.LibraryNoCloud;
+
+interface CorpusChecksumPlugin {
+  sha256(
+    options: { path: string },
+    callback: (result: { completedBytes?: number; sha256?: string } | null, error?: { message?: string }) => void,
+  ): Promise<string>;
+}
+
+const CorpusChecksum = registerPlugin<CorpusChecksumPlugin>('CorpusChecksum');
+
+const nativeSha256: NonNullable<NativeCorpusOperations['sha256']> = async (path, onProgress) => {
+  const { uri } = await Filesystem.getUri({ path, directory });
+  return new Promise<string>((resolve, reject) => {
+    void CorpusChecksum.sha256({ path: filePathFromUri(uri) }, (result, error) => {
+      if (error) {
+        reject(new Error(error.message ?? 'Native corpus verification failed.'));
+        return;
+      }
+      if (result?.sha256 !== undefined) {
+        resolve(result.sha256);
+      } else if (result?.completedBytes !== undefined) {
+        onProgress(result.completedBytes);
+      } else {
+        reject(new Error('Native corpus verification returned an invalid result.'));
+      }
+    }).catch(reject);
+  });
+};
 
 const exists = async (path: string): Promise<boolean> => {
   try {
@@ -15,6 +44,7 @@ const exists = async (path: string): Promise<boolean> => {
 };
 
 export const capacitorCorpusOperations: NativeCorpusOperations = {
+  sha256: Capacitor.getPlatform() === 'android' ? nativeSha256 : undefined,
   async ensureDirectory(path) {
     if (!await exists(path)) await Filesystem.mkdir({ path, directory, recursive: true });
   },

@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent, type FunctionComponent } from 'react';
 import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
   Database,
   Download,
+  LoaderCircle,
   Search,
 } from 'lucide-react';
 import type { CorpusInstaller, CorpusInstallState, QuestionRepository } from '../corpus/contracts';
@@ -172,8 +173,14 @@ const NativeSetup = ({
 }) => {
   const isWorking = ['checking', 'downloading', 'verifying', 'installing'].includes(state.phase);
   const progress = state.totalBytes
-    ? Math.round((state.completedBytes / state.totalBytes) * 100)
+    ? Math.min(100, Math.floor((state.completedBytes / state.totalBytes) * 100))
     : 0;
+  const isFinalizing = state.phase === 'installing'
+    || (state.phase === 'verifying' && progress === 100);
+  const isDeterminate = Boolean(state.totalBytes)
+    && (state.phase === 'downloading' || state.phase === 'verifying')
+    && !isFinalizing;
+  const progressLabel = isFinalizing ? 'Finalizing question bank' : state.phase;
 
   return (
     <main
@@ -191,12 +198,26 @@ const NativeSetup = ({
 
         {isWorking && (
           <div className="mt-6">
-            <div className="mb-2 flex justify-between text-xs text-slate-400">
-              <span className="capitalize">{state.phase}</span>
-              <span>{state.totalBytes ? `${progress}% · ${formatBytes(state.totalBytes)}` : 'Preparing...'}</span>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+              <span className="flex items-center gap-2 capitalize" role="status">
+                {!isDeterminate && <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />}
+                {progressLabel}
+              </span>
+              {isDeterminate && <span>{progress}% · {formatBytes(state.totalBytes)}</span>}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-              <div className="h-full bg-blue-500 transition-[width] duration-300" style={{ width: `${progress}%` }} />
+            <div
+              className="h-2 overflow-hidden rounded-full bg-slate-800"
+              role="progressbar"
+              aria-label={progressLabel}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={isDeterminate ? progress : undefined}
+              aria-busy={!isDeterminate}
+            >
+              <div
+                className={`h-full bg-blue-500 ${isDeterminate ? 'transition-[width] duration-300' : 'animate-pulse'}`}
+                style={{ width: isDeterminate ? `${progress}%` : '100%' }}
+              />
             </div>
           </div>
         )}
@@ -223,7 +244,7 @@ const NativeSetup = ({
   );
 };
 
-const NativeApp = () => {
+const NativeApp: FunctionComponent = () => {
   const [installer] = useState<CorpusInstaller | undefined>(() => {
     if (!configuredCorpusBaseUrl) return undefined;
     return createNativeCorpusInstaller();

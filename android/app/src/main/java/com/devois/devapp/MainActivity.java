@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(CorpusChecksumPlugin.class);
         super.onCreate(savedInstanceState);
 
         // A renderer crash tears down the hosting process unless it is handled here,
